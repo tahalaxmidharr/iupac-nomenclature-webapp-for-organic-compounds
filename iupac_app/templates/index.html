@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Organic Compound IUPAC Namer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f7f6;
+            text-align: center;
+            margin-top: 80px;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0px 4px 10px rgba(0,0,0,0.1);
+            display: inline-block;
+            width: 500px;
+        }
+        input[type="text"] {
+            width: 80%;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            margin-bottom: 15px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #result {
+            margin-top: 25px;
+            font-size: 18px;
+            color: #2c3e50;
+            font-weight: bold;
+        }
+        .examples {
+            font-size: 13px;
+            color: #666;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>IUPAC Name Finder</h1>
+        <p>Enter the SMILES structure of your organic compound:</p>
+
+        <input type="text" id="smilesInput" placeholder="e.g., CCO (Ethanol)">
+        <br>
+        <button onclick="fetchIupacName()">Give IUPAC Name</button>
+
+        <div class="examples">
+            <strong>Try these examples:</strong><br>
+            Ethanol: <code>CCO</code> | Acetone: <code>CC(=O)C</code> | Aspirin: <code>CC(=O)OC1=CC=CC=C1C(=O)O</code>
+        </div>
+
+        <div id="result"></div>
+    </div>
+
+    <script>
+        function fetchIupacName() {
+            const smiles = document.getElementById("smilesInput").value;
+            const resultDiv = document.getElementById("result");
+
+            if (!smiles) {
+                alert("Please enter a SMILES string!");
+                return;
+            }
+
+            resultDiv.innerText = "Searching database...";
+
+            fetch('/get-iupac', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ smiles: smiles })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.iupac_name) {
+                    resultDiv.innerText = "IUPAC Name: " + data.iupac_name;
+                    resultDiv.style.color = "#27ae60";
+                } else {
+                    resultDiv.innerText = "Error: " + data.error;
+                    resultDiv.style.color = "#c0392b";
+                }
+            })
+            .catch((error) => {
+                resultDiv.innerText = "An error occurred connecting to the server.";
+                resultDiv.style.color = "#c0392b";
+                console.error('Error:', error);
+            });
+        }
+    </script>
+
+</body>
+</html>

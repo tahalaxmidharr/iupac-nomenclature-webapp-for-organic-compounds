@@ -16,9 +16,9 @@ def get_iupac():
     smiles = data.get("smiles", "").strip()
 
     if not smiles:
-        return jsonify({"error": "Please enter a valid SMILES string."}), 400
+        return jsonify({"error": "No molecular structure detected."}), 400
 
-    # Safely encode special characters for the URL
+    # Safely encode the SMILES string for web transmission
     encoded_smiles = quote(smiles, safe='')
     url = f"https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/{encoded_smiles}/property/IUPACName/JSON"
 
@@ -28,7 +28,7 @@ def get_iupac():
         if response.status_code == 200:
             pubchem_data = response.json()
             iupac_name = pubchem_data["PropertyTable"]["Properties"][0]["IUPACName"]
-            return jsonify({"iupac_name": iupac_name})
+            return jsonify({"iupac_name": iupac_name, "smiles": smiles})
 
         elif response.status_code == 404:
             return jsonify({"error": "Compound not found in the PubChem database."}), 404

@@ -27,4 +27,4 @@ def fetch_iupac_from_pubchem(smiles):
 
 
 # Example test with a triple bond (Acetylene / Ethyne: C#C)
-print(fetch_iupac_from_pubchem("C#C"))
+print(fetch_iupac_from_pubchem("OC(=O)C=CC1CCC1"))

@@ -11,33 +11,68 @@ def index():
 
 
 @app.route("/get-iupac", methods=["POST"])
+
+@app.route("/get-iupac", methods=["POST"])
 def get_iupac():
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
     smiles = data.get("smiles", "").strip()
 
     if not smiles:
         return jsonify({"error": "No molecular structure detected."}), 400
 
-    # Safely encode the SMILES string for web transmission
-    encoded_smiles = quote(smiles, safe='')
-    url = f"https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/{encoded_smiles}/property/IUPACName/JSON"
+    url = (
+        "https://pubchem.ncbi.nlm.nih.gov/rest/pug/"
+        "compound/smiles/property/IUPACName/JSON"
+    )
 
     try:
-        response = requests.get(url, timeout=5)
+        # Send SMILES as form data instead of embedding it in the URL.
+        response = requests.post(
+            url,
+            data={"smiles": smiles},
+            timeout=15
+        )
 
-        if response.status_code == 200:
-            pubchem_data = response.json()
-            iupac_name = pubchem_data["PropertyTable"]["Properties"][0]["IUPACName"]
-            return jsonify({"iupac_name": iupac_name, "smiles": smiles})
+        if not response.ok:
+            try:
+                details = response.json()
+            except ValueError:
+                details = response.text[:300]
 
-        elif response.status_code == 404:
-            return jsonify({"error": "Compound not found in the PubChem database."}), 404
-        else:
-            return jsonify({"error": f"API error (Status code: {response.status_code})"}), 500
+            return jsonify({
+                "error": "PubChem could not process this structure.",
+                "details": details,
+                "smiles": smiles
+            }), 502
+
+        pubchem_data = response.json()
+
+        # Check every level instead of assuming IUPACName exists.
+        properties = (
+            pubchem_data.get("PropertyTable", {})
+            .get("Properties", [])
+        )
+
+        if not properties or not properties[0].get("IUPACName"):
+            return jsonify({
+                "error": "PubChem returned no IUPAC name for this structure.",
+                "smiles": smiles,
+                "pubchem_response": pubchem_data
+            }), 502
+
+        iupac_name = properties[0]["IUPACName"]
+
+        return jsonify({
+            "iupac_name": iupac_name,
+            "smiles": smiles
+        })
 
     except requests.exceptions.RequestException as e:
-        return jsonify({"error": f"Network error: {str(e)}"}), 500
+        return jsonify({
+            "error": "Could not connect to PubChem.",
+            "details": str(e)
+        }), 502
 
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5000)
+    app.run(host="127.0.0.1", port=5000, debug=False)
